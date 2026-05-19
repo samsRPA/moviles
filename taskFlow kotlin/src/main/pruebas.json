@@ -1,0 +1,102 @@
+// ─── TaskFlow API — Endpoints de prueba ───────────────────────────────────────
+// Iniciar servidor: ./gradlew run
+// Base URL: http://localhost:8080
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+
+// POST /auth/register — Registrar nuevo usuario
+POST http://localhost:8080/auth/register
+Content-Type: application/json
+
+{
+  "name": "Juan Carlos Pérez",
+  "email": "juan@correo.com",
+  "password": "mipass123",
+  "password2": "mipass123"
+}
+
+// POST /auth/login — Iniciar sesión
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "email": "juan@correo.com",
+  "password": "mipass123"
+}
+
+// GET /users/{uid} — Obtener perfil
+GET http://localhost:8080/users/UID_DEL_USUARIO
+
+// PUT /users/{uid} — Actualizar perfil / preferencias
+PUT http://localhost:8080/users/UID_DEL_USUARIO
+Content-Type: application/json
+
+{
+  "city": "Medellin",
+  "interests": ["rock", "tech", "futbol"],
+  "needsOnboarding": false
+}
+
+
+// ── TAREAS ────────────────────────────────────────────────────────────────────
+
+// GET /users/{uid}/tasks — Listar tareas del usuario
+GET http://localhost:8080/users/UID_DEL_USUARIO/tasks
+
+// POST /users/{uid}/tasks — Crear tarea
+POST http://localhost:8080/users/UID_DEL_USUARIO/tasks
+Content-Type: application/json
+
+{
+  "title": "Estudiar para el parcial",
+  "date": "2026-05-22",
+  "time": "14:00",
+  "category": "Personal",
+  "priority": "Alta",
+  "desc": "Repasar capítulos 3 y 4"
+}
+
+// PUT /users/{uid}/tasks/{taskId} — Actualizar tarea (ej. marcar como hecha)
+PUT http://localhost:8080/users/UID_DEL_USUARIO/tasks/TASK_ID
+Content-Type: application/json
+
+{
+  "done": true
+}
+
+// DELETE /users/{uid}/tasks/{taskId} — Eliminar tarea
+DELETE http://localhost:8080/users/UID_DEL_USUARIO/tasks/TASK_ID
+
+// GET /users/{uid}/progress — Progreso del día (tareas de hoy)
+GET http://localhost:8080/users/UID_DEL_USUARIO/progress
+
+
+// ── DISCOVER (Gemini AI) ───────────────────────────────────────────────────────
+
+// POST /discover — Obtener eventos recomendados
+POST http://localhost:8080/discover
+Content-Type: application/json
+
+{
+  "city": "Bogota",
+  "interests": ["rock", "tech", "futbol"],
+  "size": 10
+}
+
+// POST /discover?refresh=true — Forzar nueva llamada a Gemini (ignorar caché)
+POST http://localhost:8080/discover?refresh=true
+Content-Type: application/json
+
+{
+  "city": "Medellin",
+  "interests": ["reggaeton", "gastronomia"]
+}
+
+// DELETE /discover/cache — Invalidar caché de una combinación ciudad+intereses
+DELETE http://localhost:8080/discover/cache
+Content-Type: application/json
+
+{
+  "city": "Bogota",
+  "interests": ["rock", "tech"]
+}

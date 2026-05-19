@@ -1,0 +1,6 @@
+ktor:
+  deployment:
+    port: 9090
+  application:
+    modules:
+      - com.taskflow.MainKt.module

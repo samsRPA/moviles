@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    
+    <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+</style>
+
+    <meta charset="UTF-8" />
+
+    <!-- CAMBIO 1: viewport sin user-scalable, con viewport-fit=cover para notch -->
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0,
+                   minimum-scale=1.0, maximum-scale=1.0,
+                   user-scalable=no, viewport-fit=cover" />
+
+    <!-- CAMBIO 2: tema de color para la chrome del navegador (solo afecta PWA/browser) -->
+    <meta name="theme-color" content="#1E1B4B" />
+
+    <!-- CAMBIO 3: fuente local como fallback (Google Fonts no funciona offline en APK) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet" />
+
+    <title>TaskFlow</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- CAMBIO 4: sin type="module" en producción Capacitor usa el bundle de Vite -->
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

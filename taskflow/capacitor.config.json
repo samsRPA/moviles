@@ -1,0 +1,15 @@
+{
+  "appId": "com.taskflow.app",
+  "appName": "TaskFlow",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#1E1B4B"
+  },
+  "plugins": {
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#1E1B4B",
+      "overlaysWebView": true
+    }
+  }
+}
