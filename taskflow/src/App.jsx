@@ -16,8 +16,8 @@ import SuccessScreen   from "./views/screens/SuccessScreen";
 import ProfileScreen   from "./views/screens/ProfileScreen";
 
 // Controllers (only App imports these — views never do)
-import { loginUser, registerUser, logoutUser }          from "./controllers/AuthController";
-import { fetchTasks, saveTask, completeTask, deleteTask } from "./controllers/TaskController";
+import { loginUser, registerUser, logoutUser }                       from "./controllers/AuthController";
+import { fetchTasks, saveTask, completeTask, deleteTask, updateTask } from "./controllers/TaskController";
 import { subscribeToAuthState, fetchUserProfile }        from "./models/UserModel";
 
 const isNative = Capacitor.isNativePlatform();
@@ -29,6 +29,7 @@ export default function App() {
   const [tasks,        setTasks]        = useState([]);
   const [lastTask,     setLastTask]     = useState(null);
   const [showModal,    setShowModal]    = useState(false);
+  const [editingTask,  setEditingTask]  = useState(null);
   const [authError,    setAuthError]    = useState("");
   const [authBusy,     setAuthBusy]     = useState(false);
   const [tasksLoading, setTasksLoading] = useState(false);
@@ -110,18 +111,49 @@ export default function App() {
   };
 
   const handleDeleteTask = async (taskId) => {
-    await deleteTask(user.uid, taskId);
+    // Optimistic: quita de la UI inmediatamente
     setTasks(ts => ts.filter(t => t.id !== taskId));
+    try {
+      await deleteTask(user.uid, taskId);
+    } catch {
+      // Si falla, recarga desde el servidor
+      fetchTasks(user.uid).then(setTasks);
+    }
+  };
+
+  const handleEditTask = async (formData) => {
+    const taskId = editingTask.id;
+    setEditingTask(null);
+    try {
+      await updateTask(user.uid, taskId, formData);
+      // Re-fetch para obtener los valores formateados por el backend
+      const updated = await fetchTasks(user.uid);
+      setTasks(updated);
+    } catch {
+      // Si el backend no soporta update completo, actualiza solo localmente
+      setTasks(ts => ts.map(t =>
+        t.id === taskId ? { ...t, ...formData } : t
+      ));
+    }
   };
 
   const handleSaveTask = async (formData) => {
     setAuthBusy(true);
-    const { newTask } = await saveTask(user.uid, formData);
-    setTasks(ts => [newTask, ...ts]);
-    setLastTask(newTask);
-    setAuthBusy(false);
-    setShowModal(false);
-    setScreen("success");
+    try {
+      console.log("[handleSaveTask] formData.category:", formData.category);
+      const { newTask } = await saveTask(user.uid, formData);
+      console.log("[handleSaveTask] newTask.category:", newTask?.category);
+      setTasks(ts => [newTask, ...ts]);
+      setLastTask(newTask);
+      setShowModal(false);
+      setScreen("success");
+      // Re-fetch en background para sincronizar con Firestore
+      fetchTasks(user.uid).then(updated => setTasks(updated)).catch(() => {});
+    } catch (err) {
+      setAuthError(err.message ?? "Error al guardar la tarea");
+    } finally {
+      setAuthBusy(false);
+    }
   };
 
   const handleSaveProfile = (name) => {
@@ -183,6 +215,7 @@ export default function App() {
               tasksLoading={tasksLoading}
               onToggleTask={handleToggleTask}
               onDeleteTask={handleDeleteTask}
+              onEditTask={(task) => setEditingTask(task)}
               onOpenModal={() => setShowModal(true)}
               tab={tab}
               onTabChange={setTab}
@@ -197,6 +230,7 @@ export default function App() {
                 tasks={tasks}
                 onToggleTask={handleToggleTask}
                 onDeleteTask={handleDeleteTask}
+                onEditTask={(task) => setEditingTask(task)}
               />
               <BottomNav />
             </>
@@ -216,8 +250,19 @@ export default function App() {
           {showModal && (
             <CreateTaskModal
               onSave={handleSaveTask}
-              onClose={() => setShowModal(false)}
+              onClose={() => { setShowModal(false); setAuthError(""); }}
               busy={authBusy}
+              error={authError}
+            />
+          )}
+
+          {editingTask && (
+            <CreateTaskModal
+              initialTask={editingTask}
+              onSave={handleEditTask}
+              onClose={() => { setEditingTask(null); setAuthError(""); }}
+              busy={authBusy}
+              error={authError}
             />
           )}
         </>

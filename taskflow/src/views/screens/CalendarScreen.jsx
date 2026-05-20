@@ -1,22 +1,12 @@
 import { useState, useMemo } from "react";
 import TaskCard from "../components/TaskCard";
 
-/* ── Helpers ── */
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
 }
 function getFirstDayOfWeek(year, month) {
-  // 0=Sun … 6=Sat → we want Mon-first so shift
   const d = new Date(year, month, 1).getDay();
   return d === 0 ? 6 : d - 1;
-}
-function parseDateStr(str) {
-  // tasks store date as "15 de marzo" — parse via locale-aware approach
-  // fallback: try to match against current locale string of a date
-  if (!str || str === "Sin fecha") return null;
-  // Try numeric ISO first (createdAt won't help here; task.date is already formatted)
-  // We'll build a reverse lookup when rendering instead
-  return str;
 }
 
 const MONTHS_ES = [
@@ -25,52 +15,40 @@ const MONTHS_ES = [
 ];
 const DAYS_SHORT = ["L","M","X","J","V","S","D"];
 
-// Convert a task's date string ("15 de marzo") to a Date object for the given year
 function taskDateToObj(dateStr, year) {
   if (!dateStr || dateStr === "Sin fecha") return null;
-  // dateStr format: "15 de marzo" or "1 de enero"
   const months = {
     enero:0, febrero:1, marzo:2, abril:3, mayo:4, junio:5,
     julio:6, agosto:7, septiembre:8, octubre:9, noviembre:10, diciembre:11,
   };
   const match = dateStr.match(/(\d+)\s+de\s+(\w+)/i);
   if (!match) return null;
-  const day   = parseInt(match[1], 10);
-  const mon   = months[match[2].toLowerCase()];
+  const day = parseInt(match[1], 10);
+  const mon = months[match[2].toLowerCase()];
   if (mon === undefined) return null;
   return new Date(year, mon, day);
 }
 
-export default function CalendarScreen({ tasks, onToggleTask, onDeleteTask }) {
-  const today = new Date();
-  const [viewYear,  setViewYear]  = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
+function getTodayBogota() {
+  const iso = new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
+  const [y, m, d] = iso.split("-").map(Number);
+  return { year: y, month: m - 1, day: d };
+}
+
+export default function CalendarScreen({ tasks, onToggleTask, onDeleteTask, onEditTask }) {
+  const todayB = getTodayBogota();
+  const [viewYear,  setViewYear]  = useState(todayB.year);
+  const [viewMonth, setViewMonth] = useState(todayB.month);
   const [selected,  setSelected]  = useState(
-    `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`
+    `${todayB.year}-${todayB.month}-${todayB.day}`
   );
 
-  /* Build a map: "year-month-day" → tasks[] */
-  const taskMap = useMemo(() => {
-    const map = {};
-    tasks.forEach(t => {
-      const d = taskDateToObj(t.date, viewYear);
-      if (!d) return;
-      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-      if (!map[key]) map[key] = [];
-      map[key].push(t);
-    });
-    return map;
-  }, [tasks, viewYear]);
-
-  // Also check adjacent years for tasks
   const taskMapFull = useMemo(() => {
     const map = {};
     tasks.forEach(t => {
-      // Try current year, previous year, and next year
       [viewYear - 1, viewYear, viewYear + 1].forEach(yr => {
         const d = taskDateToObj(t.date, yr);
         if (!d) return;
-        // Only include if month matches viewMonth (or adjacent months we'll scroll to)
         const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
         if (!map[key]) map[key] = [];
         if (!map[key].find(x => x.id === t.id)) map[key].push(t);
@@ -79,8 +57,16 @@ export default function CalendarScreen({ tasks, onToggleTask, onDeleteTask }) {
     return map;
   }, [tasks, viewYear]);
 
-  const daysInMonth  = getDaysInMonth(viewYear, viewMonth);
-  const firstDow     = getFirstDayOfWeek(viewYear, viewMonth);
+  const daysInMonth = getDaysInMonth(viewYear, viewMonth);
+  const firstDow    = getFirstDayOfWeek(viewYear, viewMonth);
+
+  const monthTaskCount = useMemo(() => {
+    let count = 0;
+    for (let day = 1; day <= daysInMonth; day++) {
+      count += (taskMapFull[`${viewYear}-${viewMonth}-${day}`] ?? []).length;
+    }
+    return count;
+  }, [taskMapFull, viewYear, viewMonth, daysInMonth]);
 
   const prevMonth = () => {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
@@ -92,8 +78,7 @@ export default function CalendarScreen({ tasks, onToggleTask, onDeleteTask }) {
   };
 
   const selectedTasks = taskMapFull[selected] ?? [];
-
-  const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+  const todayKey = `${todayB.year}-${todayB.month}-${todayB.day}`;
 
   return (
     <div className="cal sin">
@@ -103,33 +88,37 @@ export default function CalendarScreen({ tasks, onToggleTask, onDeleteTask }) {
           <div className="cal-ttl">Calendario</div>
           <div className="cal-nav">
             <button className="cal-nav-btn" onClick={prevMonth}>‹</button>
-            <span className="cal-month-lbl">
-              {MONTHS_ES[viewMonth]} {viewYear}
-            </span>
+            <span className="cal-month-lbl">{MONTHS_ES[viewMonth]} {viewYear}</span>
             <button className="cal-nav-btn" onClick={nextMonth}>›</button>
           </div>
+        </div>
+        <div className="cal-hdr-sub">
+          {monthTaskCount > 0
+            ? `${monthTaskCount} tarea${monthTaskCount !== 1 ? "s" : ""} este mes`
+            : "Sin tareas programadas este mes"}
         </div>
       </div>
 
       {/* Calendar grid */}
       <div className="cal-grid-wrap">
-        {/* Day headers */}
         <div className="cal-dow-row">
           {DAYS_SHORT.map(d => (
             <div key={d} className="cal-dow">{d}</div>
           ))}
         </div>
 
-        {/* Day cells */}
         <div className="cal-days">
-          {/* Empty leading cells */}
           {Array.from({ length: firstDow }).map((_, i) => (
-            <div key={`e-${i}`} className="cal-day empty" />
+            <div key={`e-${i}`} className="cal-day empty">
+              <div className="cal-day-inner">
+                <span className="cal-day-num"> </span>
+              </div>
+            </div>
           ))}
 
           {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day    = i + 1;
-            const key    = `${viewYear}-${viewMonth}-${day}`;
+            const day      = i + 1;
+            const key      = `${viewYear}-${viewMonth}-${day}`;
             const isToday    = key === todayKey;
             const isSelected = key === selected;
             const dayTasks   = taskMapFull[key] ?? [];
@@ -143,11 +132,12 @@ export default function CalendarScreen({ tasks, onToggleTask, onDeleteTask }) {
                   "cal-day",
                   isToday    ? "today"    : "",
                   isSelected ? "selected" : "",
-                  hasTasks   ? "has-tasks": "",
-                ].join(" ").trim()}
+                ].filter(Boolean).join(" ")}
                 onClick={() => setSelected(key)}
               >
-                <span className="cal-day-num">{day}</span>
+                <div className="cal-day-inner">
+                  <span className="cal-day-num">{day}</span>
+                </div>
                 {hasTasks && (
                   <div className="cal-dots">
                     {dayTasks.slice(0, 3).map((t, idx) => (
@@ -169,7 +159,7 @@ export default function CalendarScreen({ tasks, onToggleTask, onDeleteTask }) {
       </div>
 
       {/* Selected day tasks */}
-      <div className="cal-day-tasks">
+      <div className="cal-day-panel">
         <div className="cal-day-tasks-hdr">
           <span className="cal-day-tasks-lbl">
             {(() => {
@@ -177,13 +167,12 @@ export default function CalendarScreen({ tasks, onToggleTask, onDeleteTask }) {
               const d = parseInt(parts[2], 10);
               const m = parseInt(parts[1], 10);
               const y = parseInt(parts[0], 10);
-              const isToday = selected === todayKey;
-              return isToday
+              return selected === todayKey
                 ? `Hoy · ${d} de ${MONTHS_ES[m].toLowerCase()}`
                 : `${d} de ${MONTHS_ES[m].toLowerCase()} ${y}`;
             })()}
           </span>
-          <span className="cal-day-tasks-count">
+          <span className={`cal-day-tasks-count${selectedTasks.length === 0 ? " zero" : ""}`}>
             {selectedTasks.length} tarea{selectedTasks.length !== 1 ? "s" : ""}
           </span>
         </div>
@@ -201,6 +190,7 @@ export default function CalendarScreen({ tasks, onToggleTask, onDeleteTask }) {
                 task={t}
                 onToggle={onToggleTask}
                 onDelete={onDeleteTask}
+                onEdit={onEditTask}
               />
             ))
           )}

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//e/Universidad/7.Septimo Semestre/Desarrollo de aplicaciones/moviles/taskflow/**)",
+      "Bash(npm run *)",
+      "Bash(npx cap *)"
+    ]
+  }
+}

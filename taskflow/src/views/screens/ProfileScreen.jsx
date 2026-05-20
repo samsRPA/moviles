@@ -42,8 +42,8 @@ export default function ProfileScreen({ user, onSave, onLogout }) {
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <span style={{ fontSize:13, color:"#6B7280" }}>Miembro desde</span>
               <span style={{ fontSize:13, fontWeight:600, color:"#111827" }}>
-                {user.createdAt?.toDate
-                  ? user.createdAt.toDate().toLocaleDateString("es-CO", { month:"long", year:"numeric" })
+                {user.createdAt
+                  ? new Date(user.createdAt).toLocaleDateString("es-CO", { day:"numeric", month:"long", year:"numeric" })
                   : "—"}
               </span>
             </div>

@@ -1,21 +1,15 @@
-import { fetchTasksFromDB, addTaskToDB, toggleTaskInDB, deleteTaskFromDB } from "../models/TaskModel";
+import { fetchTasksFromDB, addTaskToDB, toggleTaskInDB, deleteTaskFromDB, updateTaskInDB } from "../models/TaskModel";
 import { CATEGORIES } from "../constants/categories";
 
-export async function fetchTasks(uid)                 { return fetchTasksFromDB(uid); }
-export async function completeTask(uid, taskId, done) { await toggleTaskInDB(uid, taskId, done); }
-export async function deleteTask(uid, taskId)         { await deleteTaskFromDB(uid, taskId); }
-export async function saveTask(uid, formData)         { return { newTask: await addTaskToDB(uid, formData) }; }
+export async function fetchTasks(uid)                        { return fetchTasksFromDB(uid); }
+export async function completeTask(uid, taskId, done)        { await toggleTaskInDB(uid, taskId, done); }
+export async function deleteTask(uid, taskId)                { await deleteTaskFromDB(uid, taskId); }
+export async function saveTask(uid, formData)                { return { newTask: await addTaskToDB(uid, formData) }; }
+export async function updateTask(uid, taskId, formData)      { return updateTaskInDB(uid, taskId, formData); }
 
 export function getDayProgress(tasks) {
-  const todayStr = new Date().toLocaleDateString("es-CO", {
-    day: "numeric",
-    month: "long",
-  });
-
-  const todayTasks = tasks.filter(t => t.date === todayStr);
-  const total = todayTasks.length;
-  const done  = todayTasks.filter(t => t.done).length;
-
+  const total = tasks.length;
+  const done  = tasks.filter(t => t.done).length;
   return {
     done,
     total,
@@ -23,11 +17,13 @@ export function getDayProgress(tasks) {
   };
 }
 export function filterByCategory(tasks, cat) {
-  return cat === "Todas" ? tasks : tasks.filter(t => t.category === cat);
+  if (cat === "Todas") return tasks;
+  return tasks.filter(t => t?.category?.trim() === cat);
 }
 export function getCategoryCounts(tasks) {
+  console.log("[getCategoryCounts] tasks.length:", tasks.length, "| cats:", tasks.map(t => t?.category));
   return CATEGORIES.map(cat => ({
     ...cat,
-    pend: tasks.filter(t => t.category === cat.label && !t.done).length,
+    pend: tasks.filter(t => t?.category?.trim() === cat.label && !t.done).length,
   }));
 }

@@ -5,7 +5,7 @@ import { CATEGORIES } from "../../constants/categories";
 
 export default function HomeScreen({
   user, tasks, tasksLoading,
-  onToggleTask, onDeleteTask,
+  onToggleTask, onDeleteTask, onEditTask,
   onOpenModal,
   tab, onTabChange,
   onShowCalendar, onShowProfile,
@@ -14,7 +14,7 @@ export default function HomeScreen({
   const progress   = getDayProgress(tasks);
   const catCounts  = getCategoryCounts(tasks);
   const filtered   = filterByCategory(tasks, catFilter);
-  const today      = new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+  const today      = new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Bogota" });
   const filterOpts = ["Todas", ...CATEGORIES.map(c => c.label)];
 
   return (
@@ -34,7 +34,7 @@ export default function HomeScreen({
               </button>
             </div>
             {/* Progress */}
-            <div className="plbl">Progreso del día</div>
+            <div className="plbl">Progreso general</div>
             <div className="ppct">{progress.pct}%</div>
             <div className="pbar">
               <div className="pfill" style={{ width: `${progress.pct}%` }} />
@@ -85,6 +85,7 @@ export default function HomeScreen({
                   task={t}
                   onToggle={onToggleTask}
                   onDelete={onDeleteTask}
+                  onEdit={onEditTask}
                 />
               ))
             )}
@@ -135,6 +136,7 @@ export default function HomeScreen({
                   task={t}
                   onToggle={onToggleTask}
                   onDelete={onDeleteTask}
+                  onEdit={onEditTask}
                 />
               ))
             )}
